@@ -37,6 +37,10 @@ jobs:
           push: true
           tags: ${{ steps.ecr-login.outputs.registry }}/ecs-fargate-demo-repo:latest
 
+      - name: Validate CloudFormation template
+        run: |
+          aws cloudformation validate-template --template-body file://ecs-fargate.yml
+
       - name: Deploy CloudFormation (create/update stack)
         env:
           STACK_NAME: ecs-fargate-demo
@@ -45,4 +49,5 @@ jobs:
           aws cloudformation deploy \
             --stack-name "$STACK_NAME" \
             --template-file "$TEMPLATE_FILE" \
-            --capabilities CAPABILITY_NAMED_IAM
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides ECRRepositoryUri=${{ steps.ecr-login.outputs.registry }}/ecs-fargate-demo-repo
