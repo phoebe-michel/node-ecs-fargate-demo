@@ -1,0 +1,16 @@
+# Exclude node modules and git history from the Docker build context
+node_modules
+.git
+
+# Local env and editor
+.env
+.DS_Store
+.vscode
+.idea
+
+# Logs and docs
+npm-debug.log
+README.md
+
+# GitHub Actions config (not needed in image)
+.github

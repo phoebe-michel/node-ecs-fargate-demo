@@ -1,0 +1,48 @@
+name: Build, Push to ECR and Deploy CloudFormation
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get ECR login
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Ensure ECR repo exists
+        run: |
+          aws ecr describe-repositories --repository-names ecs-fargate-demo-repo || \
+          aws ecr create-repository --repository-name ecs-fargate-demo-repo
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/ecs-fargate-demo-repo:latest
+
+      - name: Deploy CloudFormation (create/update stack)
+        env:
+          STACK_NAME: ecs-fargate-demo
+          TEMPLATE_FILE: ecs-fargate.yml
+        run: |
+          aws cloudformation deploy \
+            --stack-name "$STACK_NAME" \
+            --template-file "$TEMPLATE_FILE" \
+            --capabilities CAPABILITY_NAMED_IAM
